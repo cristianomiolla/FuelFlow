@@ -106,7 +106,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary p-0">
-                <img src="/logo.png" alt="FuelFlow Logo" className="w-10 h-10 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
+                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="FuelFlow Logo" className="w-10 h-10 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
               </div>
               <div className="hidden sm:block">
                 <h1 className="font-semibold text-foreground">FuelFlow</h1>

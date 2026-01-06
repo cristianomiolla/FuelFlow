@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Lock, Mail, AlertCircle, Loader2, UserPlus, LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,7 +153,7 @@ const Auth = () => {
       {/* Logo and branding */}
       <div className="mb-8 text-center animate-fade-in">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-4 p-0">
-          <img src="/logo.png" alt="FuelFlow Logo" className="w-20 h-20 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="FuelFlow Logo" className="w-20 h-20 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
           FuelFlow
