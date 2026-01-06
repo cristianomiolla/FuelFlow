@@ -107,37 +107,110 @@ export const UploadModal = ({
     setStep("processing");
 
     try {
+      // Check authentication first
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+
+      console.log("Session check:", {
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        userId: session?.user?.id,
+        authError: authError?.message
+      });
+
+      if (authError) {
+        console.error("Auth error:", authError);
+        throw new Error(`Errore di autenticazione: ${authError.message}`);
+      }
+
+      if (!session?.access_token) {
+        console.error("No valid session or access token");
+        throw new Error("Sessione non valida. Effettua nuovamente il login.");
+      }
+
       // Convert to base64
       const base64Reader = new FileReader();
       base64Reader.onloadend = async () => {
-        const base64String = (base64Reader.result as string).split(",")[1];
+        try {
+          const base64String = (base64Reader.result as string).split(",")[1];
 
-        const { data, error } = await supabase.functions.invoke("ocr-receipt", {
-          body: { image_base64: base64String },
-        });
+          // Get fresh session token
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-        if (error) {
-          throw new Error(error.message || "Errore durante l'analisi");
+          console.log("Fresh session check:", {
+            hasSession: !!currentSession,
+            hasAccessToken: !!currentSession?.access_token,
+            userId: currentSession?.user?.id
+          });
+
+          if (!currentSession?.access_token) {
+            throw new Error("Sessione scaduta, effettua nuovamente il login");
+          }
+
+          console.log("Calling OCR function with manual auth header...");
+
+          // Use fetch directly instead of supabase.functions.invoke to have full control over headers
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ocr-receipt`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${currentSession.access_token}`,
+                "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: JSON.stringify({ image_base64: base64String }),
+            }
+          );
+
+          const data = await response.json();
+          const error = !response.ok ? new Error(data.error || "Edge Function returned a non-2xx status code") : null;
+
+          console.log("OCR response:", { hasData: !!data, hasError: !!error, data, error });
+
+          if (error) {
+            console.error("OCR function error:", error);
+            throw new Error(error.message || "Errore durante l'analisi");
+          }
+
+          if (!data) {
+            throw new Error("Nessuna risposta dalla funzione OCR");
+          }
+
+          if (data?.error) {
+            throw new Error(data.error);
+          }
+
+          const extracted = data?.data as ExtractedData;
+
+          // Check if we actually have data
+          if (!extracted || Object.keys(extracted).length === 0) {
+            throw new Error("Nessun dato estratto dalla ricevuta");
+          }
+
+          setExtractedData(extracted);
+          setFormData({
+            ...extracted,
+            cantiere_id: "",
+            chilometraggio: "",
+          });
+          setStep("preview");
+        } catch (innerErr) {
+          console.error("OCR processing error:", innerErr);
+          setError(innerErr instanceof Error ? innerErr.message : "Errore durante l'analisi");
+          setStep("preview");
+          // Still allow manual entry even if OCR fails
+          setFormData({
+            targa: null,
+            punto_vendita: null,
+            data_rifornimento: new Date().toISOString().split("T")[0],
+            tipo_carburante: null,
+            quantita: null,
+            prezzo_unitario: null,
+            importo_totale: null,
+            cantiere_id: "",
+            chilometraggio: "",
+          });
         }
-
-        if (data?.error) {
-          throw new Error(data.error);
-        }
-
-        const extracted = data?.data as ExtractedData;
-
-        // Check if we actually have data
-        if (!extracted || Object.keys(extracted).length === 0) {
-          throw new Error("Nessun dato estratto dalla ricevuta");
-        }
-
-        setExtractedData(extracted);
-        setFormData({
-          ...extracted,
-          cantiere_id: "",
-          chilometraggio: "",
-        });
-        setStep("preview");
       };
       base64Reader.readAsDataURL(file);
     } catch (err) {

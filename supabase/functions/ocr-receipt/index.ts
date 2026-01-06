@@ -76,29 +76,37 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Get authentication from request (automatically verified by Supabase when verify_jwt = true)
     const authHeader = req.headers.get("Authorization");
+
+    console.log("Auth header present:", !!authHeader);
+
     if (!authHeader) {
-      console.error("Missing authorization header");
+      console.error("Missing authorization header - verify_jwt might be disabled");
       return new Response(
-        JSON.stringify({ error: "Non autorizzato" }),
+        JSON.stringify({ error: "Non autorizzato - header mancante" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Use service role key for admin operations, but verify user from JWT
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Create a client with the user's token to verify authentication
+    const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const { data: { user }, error: authError } = await userSupabase.auth.getUser();
+
     if (authError || !user) {
       console.error("Authentication failed:", authError?.message);
       return new Response(
-        JSON.stringify({ error: "Non autorizzato" }),
+        JSON.stringify({ error: `Non autorizzato - ${authError?.message || "utente non trovato"}` }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -147,42 +155,48 @@ serve(async (req) => {
       ? `I tipi di carburante validi sono SOLO: ${fuelTypeNames.join(", ")}. Cerca di mappare il tipo trovato a uno di questi valori.`
       : `Tipi comuni: Diesel, Benzina, GPL, Metano, AdBlue, Benzina Premium, Diesel Premium, Elettrico`;
 
-    const systemPrompt = `Sei un sistema OCR specializzato nell'estrazione dati da scontrini di rifornimento carburante italiani.
+    const fullPrompt = `# RUOLO
+Sei un sistema OCR specializzato nell'estrazione dati da scontrini di rifornimento carburante italiani.
 
-Analizza l'immagine dello scontrino e estrai i seguenti dati:
-- targa: La targa del veicolo (se presente). Formato: lettere e numeri (es. AB123CD)
-- punto_vendita: Il nome della stazione di servizio o distributore
-- data_rifornimento: La data del rifornimento in formato YYYY-MM-DD
-- tipo_carburante: Tipo di carburante. ${fuelTypeInstructions}
-- quantita: Litri erogati (solo numero decimale)
-- prezzo_unitario: Prezzo al litro in euro (solo numero decimale)
-- importo_totale: Importo totale in euro (solo numero decimale)
+# COMPITO
+Analizza l'immagine dello scontrino e estrai TUTTI i seguenti dati con massima precisione:
 
-IMPORTANTE:
-- Restituisci null per i campi che non riesci a leggere o non sono presenti
-- I numeri devono essere in formato decimale con punto (es. 45.50)
-- La data deve essere in formato YYYY-MM-DD
-- Se trovi "€" o "EUR", estrai solo il valore numerico
-- Cerca sinonimi: "TOTALE", "IMPORTO", "DA PAGARE" per l'importo totale
-- Cerca "P.U.", "€/L", "PREZZO/LITRO" per il prezzo unitario
-- Cerca "LITRI", "L", "QTA" per la quantità
-- Per tipo_carburante, cerca: GASOLIO=Diesel, SUPER/VERDE=Benzina, GPL, METANO, ADBLUE
+## CAMPI DA ESTRARRE:
+1. **targa**: Targa del veicolo. Formato italiano (es. AB123CD, AA123BB). Cerca etichette: "TARGA", "VEICOLO", "AUTO", "TARGET"
+2. **punto_vendita**: Nome completo della stazione di servizio o distributore. Cerca in alto nello scontrino: logo, intestazione, nome azienda
+3. **data_rifornimento**: Data del rifornimento in formato YYYY-MM-DD. Cerca: "DATA", "DATE", timestamp
+4. **tipo_carburante**: Tipo di carburante. ${fuelTypeInstructions}
+   - Cerca: "PRODOTTO", "CARBURANTE", "TIPO", nomi prodotti
+   - Mappature comuni: GASOLIO→Diesel, SUPER/VERDE→Benzina, GPL→GPL, METANO→Metano
+5. **quantita**: Litri erogati (solo numero decimale). Cerca: "LITRI", "L", "QTA", "QUANTITA", "VOLUME"
+6. **prezzo_unitario**: Prezzo al litro in €/L (solo numero decimale). Cerca: "P.U.", "€/L", "PREZZO/LITRO", "PREZZO UNITARIO", "PU"
+7. **importo_totale**: Importo totale pagato in euro (solo numero decimale). Cerca: "TOTALE", "IMPORTO", "DA PAGARE", "EURO", "EUR", "TOTAL"
+8. **raw_text**: Estrai TUTTO il testo visibile nello scontrino, riga per riga
 
-Restituisci SOLO un JSON valido con questa struttura esatta, senza testo aggiuntivo:
+# REGOLE CRITICHE:
+✓ Restituisci **null** per campi non presenti o illeggibili (NON inventare dati)
+✓ Numeri in formato decimale con PUNTO: 45.50 (non virgola)
+✓ Date formato: YYYY-MM-DD (es. 2025-01-06)
+✓ Rimuovi simboli monetari: "45.50€" → 45.50
+✓ Cerca in TUTTO lo scontrino, non solo nelle righe centrali
+✓ Sii PRECISO con i numeri, leggi attentamente ogni cifra
+
+# FORMATO OUTPUT:
+Restituisci **SOLO** un oggetto JSON valido, senza markdown, senza testo aggiuntivo, senza spiegazioni:
+
 {
-  "targa": null | "stringa",
-  "punto_vendita": null | "stringa",
-  "data_rifornimento": null | "YYYY-MM-DD",
-  "tipo_carburante": null | "stringa",
-  "quantita": null | numero,
-  "prezzo_unitario": null | numero,
-  "importo_totale": null | numero,
-  "raw_text": "testo completo estratto dallo scontrino"
-}`;
+  "targa": null,
+  "punto_vendita": "Nome Distributore",
+  "data_rifornimento": "2025-01-06",
+  "tipo_carburante": "Diesel",
+  "quantita": 45.50,
+  "prezzo_unitario": 1.85,
+  "importo_totale": 84.18,
+  "raw_text": "testo completo estratto riga per riga"
+}
 
-    const fullPrompt = `${systemPrompt}
-
-Analizza questo scontrino di rifornimento ed estrai tutti i dati possibili. Restituisci solo JSON.`;
+# AZIONE:
+Analizza ORA l'immagine dello scontrino allegata ed estrai tutti i dati seguendo le regole sopra. Rispondi SOLO con il JSON.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
@@ -207,8 +221,29 @@ Analizza questo scontrino di rifornimento ed estrai tutti i dati possibili. Rest
           ],
           generationConfig: {
             temperature: 0.1,
+            topP: 0.95,
+            topK: 40,
             maxOutputTokens: 2048,
+            responseMimeType: "application/json",
           },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_NONE"
+            }
+          ]
         }),
       }
     );
