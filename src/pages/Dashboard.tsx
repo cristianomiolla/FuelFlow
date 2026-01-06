@@ -105,7 +105,9 @@ const Dashboard = () => {
         <div className="container-padding py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="FuelFlow Logo" className="w-10 h-10 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary p-0">
+                <img src="/logo.png" alt="FuelFlow Logo" className="w-10 h-10 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
+              </div>
               <div className="hidden sm:block">
                 <h1 className="font-semibold text-foreground">FuelFlow</h1>
                 <p className="text-xs text-muted-foreground">Dashboard operativa</p>
