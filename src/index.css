@@ -1,0 +1,269 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Design System: Fuel Management Industrial Theme
+  Colors: Deep petroleum blue, amber/orange accents, clean whites
+  Font: Modern, readable, industrial feel
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    /* Primary: Deep petroleum blue */
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
+
+    /* Cards: Clean white with subtle warmth */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    /* Primary: Petroleum blue */
+    --primary: 215 60% 25%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Warm gray */
+    --secondary: 210 15% 93%;
+    --secondary-foreground: 215 25% 25%;
+
+    /* Muted: Soft gray */
+    --muted: 210 15% 95%;
+    --muted-foreground: 215 15% 45%;
+
+    /* Accent: Amber/Orange - fuel theme */
+    --accent: 35 95% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Success: Deep green */
+    --success: 145 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning: Amber */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    /* Destructive */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 35 95% 55%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar */
+    --sidebar-background: 215 60% 20%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 35 95% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 50% 30%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 215 40% 25%;
+    --sidebar-ring: 35 95% 55%;
+
+    /* Custom tokens */
+    --fuel-gradient: linear-gradient(135deg, hsl(35 95% 55%), hsl(25 90% 50%));
+    --hero-gradient: linear-gradient(135deg, hsl(215 60% 25%), hsl(215 50% 35%));
+    --card-shadow: 0 4px 24px -4px hsla(215, 25%, 15%, 0.08);
+    --card-shadow-hover: 0 8px 32px -4px hsla(215, 25%, 15%, 0.15);
+  }
+
+  .dark {
+    --background: 215 30% 8%;
+    --foreground: 210 20% 95%;
+
+    --card: 215 30% 12%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 215 30% 12%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 35 95% 55%;
+    --primary-foreground: 215 30% 8%;
+
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 215 25% 18%;
+    --muted-foreground: 215 15% 60%;
+
+    --accent: 35 95% 55%;
+    --accent-foreground: 215 30% 8%;
+
+    --success: 145 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 20%;
+    --input: 215 25% 20%;
+    --ring: 35 95% 55%;
+
+    --sidebar-background: 215 35% 10%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 35 95% 55%;
+    --sidebar-primary-foreground: 215 30% 8%;
+    --sidebar-accent: 215 30% 18%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 215 30% 15%;
+    --sidebar-ring: 35 95% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Hero button with fuel gradient */
+  .btn-hero {
+    @apply relative overflow-hidden font-semibold text-white transition-all duration-300;
+    background: var(--fuel-gradient);
+    box-shadow: 0 4px 16px -4px hsla(35, 95%, 55%, 0.4);
+  }
+
+  .btn-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -4px hsla(35, 95%, 55%, 0.5);
+  }
+
+  /* Card with enhanced shadow */
+  .card-elevated {
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .card-elevated:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  /* Table styling */
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply bg-muted/50 text-muted-foreground font-semibold px-4 py-3 border-b;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 border-b border-border/50;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    @apply border-2 border-dashed rounded-xl p-8 transition-all duration-300 cursor-pointer;
+    @apply border-border hover:border-accent hover:bg-accent/5;
+  }
+
+  .upload-zone.dragging {
+    @apply border-accent bg-accent/10 scale-[1.02];
+  }
+
+  /* Status badges */
+  .badge-fuel {
+    background: var(--fuel-gradient);
+    @apply text-white text-xs font-medium px-2.5 py-1 rounded-full;
+  }
+
+  /* Fuel type colors */
+  .fuel-diesel {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300;
+  }
+
+  .fuel-benzina {
+    @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300;
+  }
+
+  .fuel-gpl {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
+  }
+
+  .fuel-metano {
+    @apply bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300;
+  }
+
+  /* Monospace for numbers */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    @apply font-mono;
+  }
+
+  /* Mobile-first responsive padding */
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Animation utilities */
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Scanning animation */
+  .animate-scan {
+    animation: scan 2s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0%, 100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(100%);
+      opacity: 1;
+    }
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
