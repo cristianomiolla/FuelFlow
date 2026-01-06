@@ -13,6 +13,7 @@ import {
 import { Rifornimento, Cantiere } from "@/pages/Dashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTipiCarburante } from "@/hooks/useTipiCarburante";
 
 interface EditRifornimentoModalProps {
   isOpen: boolean;
@@ -31,24 +32,8 @@ export const EditRifornimentoModal = ({
 }: EditRifornimentoModalProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tipiCarburante, setTipiCarburante] = useState<{ id: string; nome: string }[]>([]);
   const { toast } = useToast();
-
-  // Fetch fuel types from database
-  useEffect(() => {
-    const fetchTipiCarburante = async () => {
-      const { data, error } = await supabase
-        .from("tipi_carburante")
-        .select("id, nome")
-        .eq("attivo", true)
-        .order("nome");
-      
-      if (!error && data) {
-        setTipiCarburante(data);
-      }
-    };
-    fetchTipiCarburante();
-  }, []);
+  const { tipiCarburante } = useTipiCarburante();
 
   const [formData, setFormData] = useState({
     targa: "",

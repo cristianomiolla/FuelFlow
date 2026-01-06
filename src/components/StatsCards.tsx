@@ -28,7 +28,7 @@ export const StatsCards = ({ rifornimenti, cantieri, isLoading }: StatsCardsProp
     });
     years.add(currentDate.getFullYear());
     return Array.from(years).sort((a, b) => b - a);
-  }, [rifornimenti]);
+  }, [rifornimenti, currentDate]);
 
   const selectedDate = useMemo(() => {
     return setYear(setMonth(new Date(), selectedMonth), selectedYear);

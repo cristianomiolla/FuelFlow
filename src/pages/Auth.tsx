@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Fuel, Lock, Mail, AlertCircle, Loader2, UserPlus, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Inserisci un indirizzo email valido");
@@ -16,28 +16,9 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          navigate("/dashboard");
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        navigate("/dashboard");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  useAuthRedirect({ redirectTo: "/dashboard", requireAuth: false });
 
   const validateInputs = (): boolean => {
     try {

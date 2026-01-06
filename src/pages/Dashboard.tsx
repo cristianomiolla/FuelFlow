@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, LogOut, Fuel, FileSpreadsheet, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { GestioneCantieriModal } from "@/components/GestioneCantieriModal";
 import { StatsCards } from "@/components/StatsCards";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { User, Session } from "@supabase/supabase-js";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 export interface Rifornimento {
   id: string;
@@ -39,45 +39,8 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isCantieriModalOpen, setIsCantieriModalOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (!currentSession?.user) {
-          navigate("/");
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (!currentSession?.user) {
-        navigate("/");
-      } else {
-        fetchData();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  // Fetch data when session is available
-  useEffect(() => {
-    if (session?.user) {
-      fetchData();
-    }
-  }, [session]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -106,6 +69,12 @@ const Dashboard = () => {
       setIsLoading(false);
     }
   };
+
+  const { session } = useAuthRedirect({
+    redirectTo: "/",
+    requireAuth: true,
+    onSessionReady: fetchData
+  });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -136,9 +105,7 @@ const Dashboard = () => {
         <div className="container-padding py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <Fuel className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src="/logo.png" alt="FuelFlow Logo" className="w-10 h-10 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
               <div className="hidden sm:block">
                 <h1 className="font-semibold text-foreground">FuelFlow</h1>
                 <p className="text-xs text-muted-foreground">Dashboard operativa</p>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo } from "react";
 import {
   Search,
   Filter,
@@ -56,7 +56,7 @@ interface RifornimentiTableProps {
 type SortField = "data_rifornimento" | "importo_totale" | "quantita" | "targa";
 type SortDirection = "asc" | "desc";
 
-export const RifornimentiTable = ({
+const RifornimentiTableComponent = ({
   rifornimenti,
   cantieri,
   isLoading,
@@ -528,3 +528,5 @@ export const RifornimentiTable = ({
     </div>
   );
 };
+
+export const RifornimentiTable = memo(RifornimentiTableComponent);

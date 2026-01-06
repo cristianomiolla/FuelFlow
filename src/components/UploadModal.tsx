@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { X, Upload, Camera, Loader2, AlertCircle, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,11 @@ import {
 import { Cantiere } from "@/pages/Dashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTipiCarburante } from "@/hooks/useTipiCarburante";
 
-interface TipoCarburante {
-  id: string;
-  nome: string;
-}
+// Signed URL expiry time (1 year in seconds)
+const SIGNED_URL_EXPIRY_SECONDS = 31536000;
+
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -60,24 +60,8 @@ export const UploadModal = ({
     chilometraggio: "",
   });
   const [error, setError] = useState<string | null>(null);
-  const [tipiCarburante, setTipiCarburante] = useState<TipoCarburante[]>([]);
   const { toast } = useToast();
-
-  // Fetch fuel types from database
-  useEffect(() => {
-    const fetchTipiCarburante = async () => {
-      const { data, error } = await supabase
-        .from("tipi_carburante")
-        .select("id, nome")
-        .eq("attivo", true)
-        .order("nome");
-      
-      if (!error && data) {
-        setTipiCarburante(data);
-      }
-    };
-    fetchTipiCarburante();
-  }, []);
+  const { tipiCarburante } = useTipiCarburante();
 
   const resetState = () => {
     setStep("upload");
@@ -226,7 +210,7 @@ export const UploadModal = ({
           // Use signed URL since bucket is now private
           const { data: urlData, error: signError } = await supabase.storage
             .from("receipts")
-            .createSignedUrl(fileName, 31536000); // 1 year expiry
+            .createSignedUrl(fileName, SIGNED_URL_EXPIRY_SECONDS);
           
           if (!signError && urlData) {
             imageUrl = urlData.signedUrl;
@@ -360,7 +344,7 @@ export const UploadModal = ({
                     setStep("preview");
                   }}
                 >
-                  Inserimento manuale (senza scansione)
+                  Inserimento manuale (no scansione)
                 </Button>
               </div>
             </div>
