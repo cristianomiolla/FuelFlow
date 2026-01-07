@@ -81,6 +81,10 @@ interface ServiceAccountKey {
   universe_domain: string;
 }
 
+// OAuth2 Token Cache - Global variables to cache token between requests
+let cachedOAuthToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
 // Function to create JWT for Google OAuth2
 function createJWT(serviceAccount: ServiceAccountKey, scope: string): string {
   const header = {
@@ -180,6 +184,29 @@ async function getAccessToken(serviceAccount: ServiceAccountKey): Promise<string
 
   const tokenData = await tokenResponse.json();
   return tokenData.access_token;
+}
+
+// Cached version of getAccessToken - reuses token for 50 minutes
+async function getCachedAccessToken(serviceAccount: ServiceAccountKey): Promise<string> {
+  const now = Date.now();
+
+  // Check if we have a valid cached token (valid for at least 5 more minutes)
+  if (cachedOAuthToken && tokenExpiresAt > now + 5 * 60 * 1000) {
+    const remainingSeconds = Math.round((tokenExpiresAt - now) / 1000);
+    console.log(`✓ Using cached OAuth token (expires in ${remainingSeconds}s)`);
+    return cachedOAuthToken;
+  }
+
+  // Token expired or missing - generate a new one
+  console.log("Generating new OAuth token (cache miss or expired)...");
+  const newToken = await getAccessToken(serviceAccount);
+
+  // Cache the token for 50 minutes (3000 seconds)
+  cachedOAuthToken = newToken;
+  tokenExpiresAt = now + 50 * 60 * 1000;
+
+  console.log("✓ New OAuth token cached (valid for 50 minutes)");
+  return newToken;
 }
 
 // Validation and confidence scoring
@@ -642,10 +669,8 @@ serve(async (req) => {
       processor: PROCESSOR_ID
     });
 
-    // Get OAuth2 access token
-    console.log("Getting OAuth2 access token...");
-    const accessToken = await getAccessToken(serviceAccount);
-    console.log("Access token obtained successfully");
+    // Get OAuth2 access token (cached for performance)
+    const accessToken = await getCachedAccessToken(serviceAccount);
 
     // Call Document AI API with OAuth2 - use PROJECT_NUMBER instead of project_id
     const documentAIUrl = `https://${LOCATION}-documentai.googleapis.com/v1/projects/${PROJECT_NUMBER}/locations/${LOCATION}/processors/${PROCESSOR_ID}:process`;
