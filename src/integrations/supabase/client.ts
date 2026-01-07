@@ -20,7 +20,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // URL dinamico che funziona sia in sviluppo che in produzione
-    flowType: 'pkce',
   }
 });

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { X, Upload, Camera, Loader2, AlertCircle, Check, Sparkles } from "lucide-react";
+import { X, Upload, Camera, Loader2, AlertCircle, Check, Sparkles, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,8 @@ interface ExtractedData {
   prezzo_unitario: number | null;
   importo_totale: number | null;
   raw_text?: string;
+  confidence_score?: number;
+  validation_warnings?: string[];
 }
 
 type Step = "upload" | "processing" | "preview" | "saving";
@@ -471,9 +473,38 @@ export const UploadModal = ({
               )}
 
               {extractedData && !error && (
-                <div className="flex items-center gap-2 text-success text-sm bg-success/10 p-3 rounded-lg">
-                  <Check className="w-4 h-4 flex-shrink-0" />
-                  <span>Dati estratti con successo. Verifica e correggi se necessario.</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-success text-sm bg-success/10 p-3 rounded-lg">
+                    <Check className="w-4 h-4 flex-shrink-0" />
+                    <div className="flex-1">
+                      <span>Dati estratti con successo.</span>
+                      {extractedData.confidence_score !== undefined && (
+                        <span className="ml-2 font-medium">
+                          Affidabilità: {extractedData.confidence_score}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {extractedData.validation_warnings && extractedData.validation_warnings.length > 0 && (
+                    <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-warning">Attenzione - Verifica questi dati:</p>
+                        </div>
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1 ml-6">
+                        {extractedData.validation_warnings.map((warning, idx) => (
+                          <li key={idx} className="list-disc">{warning}</li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-muted-foreground mt-2 ml-6">
+                        <Info className="w-3 h-3 inline mr-1" />
+                        Alcuni dati potrebbero essere stati corretti automaticamente.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
