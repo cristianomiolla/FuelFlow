@@ -189,10 +189,10 @@ export const StatsCards = ({ rifornimenti, cantieri, isLoading }: StatsCardsProp
 
       {/* Cantiere Chips */}
       {cantieri.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
           <Badge
             variant={selectedCantiere === null ? "default" : "outline"}
-            className="cursor-pointer transition-colors"
+            className="cursor-pointer transition-colors whitespace-nowrap flex-shrink-0"
             onClick={() => setSelectedCantiere(null)}
           >
             Tutti i cantieri
@@ -201,7 +201,7 @@ export const StatsCards = ({ rifornimenti, cantieri, isLoading }: StatsCardsProp
             <Badge
               key={cantiere.id}
               variant={selectedCantiere === cantiere.id ? "default" : "outline"}
-              className="cursor-pointer transition-colors"
+              className="cursor-pointer transition-colors whitespace-nowrap flex-shrink-0"
               onClick={() => setSelectedCantiere(cantiere.id)}
             >
               {cantiere.nome}

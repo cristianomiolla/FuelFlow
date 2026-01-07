@@ -23,7 +23,10 @@
       "Bash(npx supabase:*)",
       "Bash(npm run build:*)",
       "Bash(git checkout:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(gh api:*)",
+      "Bash(if not exist \".github\\\\workflows\" mkdir .githubworkflows)",
+      "Bash(gh secret set:*)"
     ]
   }
 }

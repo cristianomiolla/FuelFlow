@@ -118,7 +118,7 @@ const Auth = () => {
 
         toast({
           title: "Registrazione completata",
-          description: "Account creato con successo. Accesso in corso...",
+          description: "Controlla la tua email e clicca sul link di conferma per attivare l'account.",
         });
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
