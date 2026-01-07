@@ -175,10 +175,10 @@ export const UploadModal = ({
       const compressedBlob = await compressImage(file);
       console.log(`Compressed file size: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
-      // Check authentication first
-      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      // Check authentication first and refresh token if needed
+      let { data: { session }, error: authError } = await supabase.auth.getSession();
 
-      console.log("Session check:", {
+      console.log("Initial session check:", {
         hasSession: !!session,
         hasAccessToken: !!session?.access_token,
         userId: session?.user?.id,
@@ -190,10 +190,30 @@ export const UploadModal = ({
         throw new Error(`Errore di autenticazione: ${authError.message}`);
       }
 
-      if (!session?.access_token) {
-        console.error("No valid session or access token");
+      if (!session) {
+        console.error("No session found");
         throw new Error("Sessione non valida. Effettua nuovamente il login.");
       }
+
+      // Always refresh the session to ensure we have a valid token
+      console.log("Refreshing session to get valid token...");
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (refreshError) {
+        console.error("Refresh error:", refreshError);
+        throw new Error("Sessione scaduta. Effettua nuovamente il login.");
+      }
+
+      if (!refreshedSession?.access_token) {
+        console.error("No valid session or access token after refresh");
+        throw new Error("Impossibile ottenere un token valido. Effettua nuovamente il login.");
+      }
+
+      console.log("Session refreshed successfully:", {
+        hasSession: !!refreshedSession,
+        hasAccessToken: !!refreshedSession?.access_token,
+        userId: refreshedSession?.user?.id
+      });
 
       // Convert compressed blob to base64
       const base64Reader = new FileReader();
@@ -201,20 +221,7 @@ export const UploadModal = ({
         try {
           const base64String = (base64Reader.result as string).split(",")[1];
 
-          // Get fresh session token
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-
-          console.log("Fresh session check:", {
-            hasSession: !!currentSession,
-            hasAccessToken: !!currentSession?.access_token,
-            userId: currentSession?.user?.id
-          });
-
-          if (!currentSession?.access_token) {
-            throw new Error("Sessione scaduta, effettua nuovamente il login");
-          }
-
-          console.log("Calling OCR function with manual auth header...");
+          console.log("Calling OCR function with refreshed auth token...");
 
           // Use fetch directly instead of supabase.functions.invoke to have full control over headers
           const response = await fetch(
@@ -223,7 +230,7 @@ export const UploadModal = ({
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${currentSession.access_token}`,
+                "Authorization": `Bearer ${refreshedSession.access_token}`,
                 "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
               },
               body: JSON.stringify({ image_base64: base64String }),
