@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo create:*)",
+      "Bash(test:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git add:*)",
+      "Bash(gh run:*)",
+      "Bash(npx supabase functions deploy:*)",
+      "Bash(curl:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh auth refresh:*)",
+      "Bash(gh repo delete:*)",
+      "Bash(npm run dev:*)",
+      "Bash(powershell -Command \"''{0:N2} MB'' -f \\(\\(Get-ChildItem -Recurse | Measure-Object -Property Length -Sum\\).Sum / 1MB\\)\")",
+      "Bash(powershell:*)",
+      "Bash(dir:*)",
+      "Bash(npx depcheck)",
+      "Bash(npx supabase:*)",
+      "Bash(npm run build:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(gh api:*)",
+      "Bash(if not exist \".github\\\\workflows\" mkdir .githubworkflows)",
+      "Bash(gh secret set:*)"
+    ]
+  }
+}
