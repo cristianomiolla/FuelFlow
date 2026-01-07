@@ -109,6 +109,7 @@ export const UploadModal = ({
 }: UploadModalProps) => {
   const [step, setStep] = useState<Step>("upload");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [compressedImageBlob, setCompressedImageBlob] = useState<Blob | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [formData, setFormData] = useState<ExtractedData & { cantiere_id: string; chilometraggio: string }>({
@@ -129,6 +130,7 @@ export const UploadModal = ({
   const resetState = () => {
     setStep("upload");
     setImageFile(null);
+    setCompressedImageBlob(null);
     setImagePreview(null);
     setExtractedData(null);
     setFormData({
@@ -174,6 +176,9 @@ export const UploadModal = ({
       console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
       const compressedBlob = await compressImage(file);
       console.log(`Compressed file size: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+
+      // Save compressed blob for later storage upload
+      setCompressedImageBlob(compressedBlob);
 
       // Check authentication first and refresh token if needed
       let { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -344,22 +349,26 @@ export const UploadModal = ({
         throw new Error("Utente non autenticato");
       }
 
-      // Upload image if present - use user-scoped path for security
+      // Upload compressed image if present - use user-scoped path for security
       let imageUrl = null;
-      if (imageFile) {
-        const fileName = `${user.id}/${Date.now()}-${imageFile.name}`;
+      if (compressedImageBlob && imageFile) {
+        // Use the compressed blob for upload, but keep original filename
+        const fileName = `${user.id}/${Date.now()}-${imageFile.name.replace(/\.[^/.]+$/, '.jpg')}`;
         const { error: uploadError } = await supabase.storage
           .from("receipts")
-          .upload(fileName, imageFile);
+          .upload(fileName, compressedImageBlob, {
+            contentType: 'image/jpeg',
+          });
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
         } else {
+          console.log(`Uploaded compressed image: ${(compressedImageBlob.size / 1024 / 1024).toFixed(2)}MB`);
           // Use signed URL since bucket is now private
           const { data: urlData, error: signError } = await supabase.storage
             .from("receipts")
             .createSignedUrl(fileName, SIGNED_URL_EXPIRY_SECONDS);
-          
+
           if (!signError && urlData) {
             imageUrl = urlData.signedUrl;
           }
