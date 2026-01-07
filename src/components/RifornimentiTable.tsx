@@ -51,6 +51,9 @@ interface RifornimentiTableProps {
   cantieri: Cantiere[];
   isLoading: boolean;
   onRefresh: () => void;
+  totalCount: number;
+  onLoadMore: () => void;
+  hasMore: boolean;
 }
 
 type SortField = "data_rifornimento" | "importo_totale" | "quantita" | "targa";
@@ -61,6 +64,9 @@ const RifornimentiTableComponent = ({
   cantieri,
   isLoading,
   onRefresh,
+  totalCount,
+  onLoadMore,
+  hasMore,
 }: RifornimentiTableProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCantiere, setFilterCantiere] = useState<string>("all");
@@ -502,11 +508,25 @@ const RifornimentiTableComponent = ({
         </table>
       </div>
 
-      {/* Footer with count */}
+      {/* Footer with count and load more button */}
       <div className="p-3 border-t border-border bg-muted/30">
-        <p className="text-xs text-muted-foreground text-center">
-          Visualizzati {filteredAndSortedData.length} di {rifornimenti.length} rifornimenti
-        </p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xs text-muted-foreground text-center">
+            Visualizzati {filteredAndSortedData.length} di {rifornimenti.length} rifornimenti caricati
+            {rifornimenti.length < totalCount && ` (totale: ${totalCount})`}
+          </p>
+          {hasMore && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLoadMore}
+              className="gap-2"
+            >
+              <ChevronDown className="w-4 h-4" />
+              Carica altri 50 rifornimenti
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Edit Modal */}

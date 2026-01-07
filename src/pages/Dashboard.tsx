@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, LogOut, Fuel, FileSpreadsheet, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,17 +39,25 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isCantieriModalOpen, setIsCantieriModalOpen] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
+      // Fetch total count
+      const { count } = await supabase
+        .from("rifornimenti")
+        .select("*", { count: "exact", head: true });
+
       const [rifornimentiRes, cantieriRes] = await Promise.all([
         supabase
           .from("rifornimenti")
           .select("*, cantieri(nome)")
-          .order("data_rifornimento", { ascending: false }),
+          .order("data_rifornimento", { ascending: false })
+          .limit(displayLimit),
         supabase.from("cantieri").select("*").eq("attivo", true).order("nome"),
       ]);
 
@@ -58,6 +66,7 @@ const Dashboard = () => {
 
       setRifornimenti(rifornimentiRes.data || []);
       setCantieri(cantieriRes.data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -75,6 +84,17 @@ const Dashboard = () => {
     requireAuth: true,
     onSessionReady: fetchData
   });
+
+  const handleLoadMore = () => {
+    setDisplayLimit((prev) => prev + 50);
+  };
+
+  // Refetch data when displayLimit changes
+  useEffect(() => {
+    if (session && displayLimit > 50) {
+      fetchData();
+    }
+  }, [displayLimit]);
 
   const handleLogout = async () => {
     try {
@@ -143,7 +163,7 @@ const Dashboard = () => {
         <div className="container-padding py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary p-0">
+              <div className="inline-flex items-center justify-center w-10 h-10">
                 <img src={`${import.meta.env.BASE_URL}logo.png`} alt="FuelFlow Logo" className="w-10 h-10 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
               </div>
               <div className="hidden sm:block">
@@ -199,7 +219,7 @@ const Dashboard = () => {
               <h2 className="font-semibold text-foreground">Registro Rifornimenti</h2>
             </div>
             <span className="text-sm text-muted-foreground">
-              {rifornimenti.length} {rifornimenti.length === 1 ? "record" : "records"}
+              {rifornimenti.length} di {totalCount} {totalCount === 1 ? "record" : "records"}
             </span>
           </div>
 
@@ -208,6 +228,9 @@ const Dashboard = () => {
             cantieri={cantieri}
             isLoading={isLoading}
             onRefresh={fetchData}
+            totalCount={totalCount}
+            onLoadMore={handleLoadMore}
+            hasMore={rifornimenti.length < totalCount}
           />
         </div>
       </main>
