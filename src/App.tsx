@@ -11,7 +11,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const basename = import.meta.env.MODE === 'production' ? '/fuel-flow-management' : '';
+  const basename = import.meta.env.MODE === 'production' ? '/FuelFlow' : '';
 
   return (
     <QueryClientProvider client={queryClient}>
