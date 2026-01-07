@@ -11,7 +11,8 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const basename = import.meta.env.MODE === 'production' ? '/FuelFlow' : '';
+  // Usa /FuelFlow solo su GitHub Pages, non su localhost
+  const basename = window.location.hostname === 'cristianomiolla.github.io' ? '/FuelFlow' : '';
 
   return (
     <QueryClientProvider client={queryClient}>
