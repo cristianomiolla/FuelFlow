@@ -18,6 +18,66 @@ import { useTipiCarburante } from "@/hooks/useTipiCarburante";
 // Signed URL expiry time (1 year in seconds)
 const SIGNED_URL_EXPIRY_SECONDS = 31536000;
 
+// Image compression settings
+const MAX_IMAGE_WIDTH = 1920;
+const MAX_IMAGE_HEIGHT = 1920;
+const COMPRESSION_QUALITY = 0.85; // 85% quality (like WhatsApp)
+
+/**
+ * Compresses and resizes an image file to reduce upload size and processing time
+ */
+const compressImage = async (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        // Calculate new dimensions maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
+          const ratio = Math.min(MAX_IMAGE_WIDTH / width, MAX_IMAGE_HEIGHT / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        // Create canvas and resize
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        // Draw resized image
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to blob with compression
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log(`Image compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB -> ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to compress image'));
+            }
+          },
+          'image/jpeg',
+          COMPRESSION_QUALITY
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -110,6 +170,11 @@ export const UploadModal = ({
     setStep("processing");
 
     try {
+      // Compress image before upload
+      console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      const compressedBlob = await compressImage(file);
+      console.log(`Compressed file size: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+
       // Check authentication first
       const { data: { session }, error: authError } = await supabase.auth.getSession();
 
@@ -130,7 +195,7 @@ export const UploadModal = ({
         throw new Error("Sessione non valida. Effettua nuovamente il login.");
       }
 
-      // Convert to base64
+      // Convert compressed blob to base64
       const base64Reader = new FileReader();
       base64Reader.onloadend = async () => {
         try {
@@ -215,7 +280,7 @@ export const UploadModal = ({
           });
         }
       };
-      base64Reader.readAsDataURL(file);
+      base64Reader.readAsDataURL(compressedBlob);
     } catch (err) {
       console.error("OCR error:", err);
       setError(err instanceof Error ? err.message : "Errore durante l'analisi");
