@@ -33,6 +33,7 @@ interface ExtractedData {
   quantita: number | null;
   prezzo_unitario: number | null;
   importo_totale: number | null;
+  chilometri: number | null;
   raw_text?: string;
   confidence_score?: number;
   validation_warnings?: string[];
@@ -193,7 +194,7 @@ export const UploadModal = ({
           setFormData({
             ...extracted,
             cantiere_id: "",
-            chilometraggio: "",
+            chilometraggio: extracted.chilometri?.toString() || "",
           });
           setStep("preview");
         } catch (innerErr) {

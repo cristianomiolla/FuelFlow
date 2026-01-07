@@ -204,14 +204,6 @@ function validateReceiptData(data: Omit<ReceiptData, 'raw_text' | 'confidence_sc
     if (percentDiff > 5) {
       warnings.push(`Incoerenza matematica: ${data.quantita}L × €${data.prezzo_unitario}/L = €${calculatedTotal.toFixed(2)}, ma totale rilevato = €${data.importo_totale}`);
       confidence -= 20;
-
-      // Tentativo di correzione: se 2 valori su 3 sembrano corretti
-      if (percentDiff > 50) {
-        // Probabilmente uno dei valori è completamente sbagliato
-        // Proviamo a ricalcolare il totale
-        correctedData.importo_totale = parseFloat(calculatedTotal.toFixed(2));
-        warnings.push(`Totale corretto automaticamente da €${data.importo_totale} a €${correctedData.importo_totale}`);
-      }
     }
   }
 
@@ -371,6 +363,7 @@ function extractReceiptData(docAIResponse: DocumentAIResponse, availableFuelType
   let quantita: number | null = null;
   let prezzo_unitario: number | null = null;
   let importo_totale: number | null = null;
+  let chilometri: number | null = null;
 
   // Extract from raw text using patterns
   const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -452,6 +445,18 @@ function extractReceiptData(docAIResponse: DocumentAIResponse, availableFuelType
     /€\s*(\d+[.,]\d+)/,
   ];
 
+  // Pattern per chilometri - cerca numeri vicino a "km" (da 1 a 6 cifre)
+  const kmPatterns = [
+    // "ODO: 125000", "Odometro: 125.000", "ODO 5000" (più specifico, prioritario)
+    /(?:odo|odometro|contachilometri)[:\s]*(\d{1,3}(?:[.,]\d{3})*|\d{1,6})/i,
+    // "Chilometri: 125000", "Kilometri 125.000", "km: 5000" (specifico)
+    /(?:chilometri|kilometri|km)[:\s]+(\d{1,3}(?:[.,]\d{3})*|\d{1,6})/i,
+    // "125000 km", "125.000 km", "5000 km", "125000km"
+    /\b(\d{1,3}(?:[.,]\d{3})+|\d{4,6})\s*km\b/i,
+    // "km 125000", "km125000" (senza spazi o con spazi)
+    /\bkm\s*(\d{4,6})\b/i,
+  ];
+
   for (const line of lines) {
     // Extract quantity
     if (!quantita) {
@@ -489,6 +494,23 @@ function extractReceiptData(docAIResponse: DocumentAIResponse, availableFuelType
         }
       }
     }
+
+    // Extract chilometri
+    if (!chilometri) {
+      for (const pattern of kmPatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          // Remove thousand separators (. or ,) and convert to integer
+          const cleanNumber = match[1].replace(/[.,]/g, '');
+          const value = parseInt(cleanNumber, 10);
+          // Only accept reasonable km values (between 0 and 999999)
+          if (value >= 0 && value <= 999999) {
+            chilometri = value;
+            break;
+          }
+        }
+      }
+    }
   }
 
   // Extract punto vendita (usually one of the first lines or contains keywords)
@@ -512,6 +534,7 @@ function extractReceiptData(docAIResponse: DocumentAIResponse, availableFuelType
     quantita,
     prezzo_unitario,
     importo_totale,
+    chilometri,
     raw_text: rawText
   };
 }
@@ -727,18 +750,34 @@ Analizza il testo OCR estratto da uno scontrino e trova TUTTI i seguenti dati co
 5. **quantita**: Litri erogati (solo numero decimale). Cerca: "LITRI", "L", "QTA", "QUANTITA", "VOLUME", "LT"
 6. **prezzo_unitario**: Prezzo al litro in €/L (solo numero decimale). Cerca: "P.U.", "€/L", "PREZZO/LITRO", "PREZZO UNITARIO", "PU", "PREZZO"
 7. **importo_totale**: Importo totale pagato in euro (solo numero decimale). Cerca: "TOTALE", "IMPORTO", "DA PAGARE", "EURO", "EUR", "TOTAL", "TOT"
-8. **chilometri**: Chilometraggio del veicolo al momento del rifornimento (solo numero intero, senza decimali). Cerca: "KM", "CHILOMETRI", "KILOMETRI", "ODO", "ODOMETRO", "CONTACHILOMETRI". Se non presente, restituisci **null**
+8. **chilometri**: Chilometraggio del veicolo al momento del rifornimento (solo numero intero, senza decimali)
+   - Cerca etichette: "KM", "CHILOMETRI", "KILOMETRI", "ODO", "ODOMETRO", "CONTACHILOMETRI"
+   - **IMPORTANTE**: Spesso il chilometraggio appare come numero seguito da "km" (es. "125000 km", "5000 km", "45.678km", "125.000 km")
+   - Cerca numeri (da 1 a 6 cifre) seguiti o preceduti dalla parola "km" anche senza etichetta esplicita
+   - Esempi comuni negli scontrini:
+     * "km 5000" → 5000
+     * "km 125000" → 125000
+     * "125.000 km" → 125000 (rimuovi separatori di migliaia)
+     * "5.000 km" → 5000 (rimuovi separatori di migliaia)
+     * "45678km" → 45678
+     * "ODO: 125000" → 125000
+     * "Contachilometri 125.000" → 125000
+     * "1500 km" → 1500 (anche per auto nuove)
+   - Rimuovi SEMPRE separatori di migliaia (punti o virgole): "125.000" → 125000, "125,000" → 125000
+   - Se non presente o illeggibile, restituisci **null**
 
 # REGOLE CRITICHE:
 ✓ Restituisci **null** per campi non presenti o illeggibili (NON inventare dati)
 ✓ Numeri in formato decimale con PUNTO: 45.50 (non virgola)
 ✓ I chilometri sono numeri INTERI (es. 125000, 45678) - NON usare decimali
+✓ Per i chilometri, RIMUOVI separatori di migliaia: "125.000" o "125,000" → 125000
 ✓ Date formato: YYYY-MM-DD (es. 2025-01-07)
 ✓ Rimuovi simboli monetari: "45.50€" → 45.50
 ✓ Cerca in TUTTO il testo, non solo nelle righe centrali
 ✓ Sii PRECISO con i numeri, leggi attentamente ogni cifra
 ✓ Se vedi numeri con virgola (es. 45,50), convertili in formato con punto (45.50)
 ✓ I chilometri sono OPZIONALI: se non li trovi, lascia null
+✓ CRITICO per chilometri: cerca numeri (da 1 a 6 cifre) vicino alla parola "km" anche se non c'è etichetta come "Chilometri:" o "ODO:" - possono essere sia bassi (es. 1500 per auto nuove) che alti (es. 125000)
 
 # FORMATO OUTPUT:
 Restituisci **SOLO** un oggetto JSON valido, senza markdown, senza testo aggiuntivo, senza spiegazioni:
