@@ -410,9 +410,9 @@ const RifornimentiTableComponent = ({
                   <SortIcon field="importo_totale" />
                 </div>
               </th>
-              <th className="hidden sm:table-cell text-right">Km</th>
-              <th className="hidden md:table-cell text-left">Cantiere</th>
-              <th className="hidden lg:table-cell text-left">Stazione</th>
+              <th className="text-right">Km</th>
+              <th className="text-left">Cantiere</th>
+              <th className="text-left">Stazione</th>
               <th className="w-12"></th>
             </tr>
           </thead>
@@ -460,13 +460,13 @@ const RifornimentiTableComponent = ({
                       ? `€ ${r.importo_totale.toLocaleString("it-IT", { minimumFractionDigits: 2 })}`
                       : "—"}
                   </td>
-                  <td className="hidden sm:table-cell text-right tabular-nums text-muted-foreground">
+                  <td className="text-right tabular-nums text-muted-foreground">
                     {r.chilometraggio?.toLocaleString("it-IT") || "—"}
                   </td>
-                  <td className="hidden md:table-cell text-muted-foreground text-sm">
+                  <td className="text-muted-foreground text-sm">
                     {r.cantieri?.nome || "—"}
                   </td>
-                  <td className="hidden lg:table-cell text-muted-foreground text-sm truncate max-w-[200px]">
+                  <td className="text-muted-foreground text-sm truncate max-w-[200px]">
                     {r.punto_vendita || "—"}
                   </td>
                   <td>
@@ -475,7 +475,7 @@ const RifornimentiTableComponent = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
