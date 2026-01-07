@@ -77,8 +77,46 @@ const Dashboard = () => {
   });
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // Se l'errore è di sessione invalida o 403, forza il logout locale
+        const isSessionError =
+          error.name === 'AuthSessionMissingError' ||
+          error.message?.includes('Auth session missing') ||
+          error.message?.includes('403') ||
+          error.status === 403;
+
+        if (isSessionError) {
+          // Pulisci manualmente il localStorage
+          const keys = Object.keys(localStorage);
+          keys.forEach(key => {
+            if (key.startsWith('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+          navigate("/");
+          return;
+        }
+
+        toast({
+          title: "Errore durante il logout",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      navigate("/");
+    } catch (err) {
+      // In caso di eccezione, prova comunque il logout locale
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      navigate("/");
+    }
   };
 
   const handleUploadComplete = () => {
