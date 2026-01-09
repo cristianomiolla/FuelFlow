@@ -7,7 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-const passwordSchema = z.string().min(6, "La password deve essere di almeno 6 caratteri");
+const passwordSchema = z
+  .string()
+  .min(8, "La password deve essere di almeno 8 caratteri")
+  .regex(/[A-Z]/, "La password deve contenere almeno una lettera maiuscola")
+  .regex(/[a-z]/, "La password deve contenere almeno una lettera minuscola")
+  .regex(/[0-9]/, "La password deve contenere almeno un numero")
+  .regex(/[^A-Za-z0-9]/, "La password deve contenere almeno un carattere speciale (!@#$%^&* ecc.)");
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -88,7 +94,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/30">
       {/* Logo and branding */}
       <div className="mb-8 text-center animate-fade-in">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-4 p-0">
+        <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
           <img src={`${import.meta.env.BASE_URL}logo.png`} alt="FuelFlow Logo" className="w-20 h-20 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -123,7 +129,7 @@ const ResetPassword = () => {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Inserisci la nuova password (min 6 caratteri)"
+                    placeholder="Inserisci la nuova password (min 8 caratteri)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-11 h-12"

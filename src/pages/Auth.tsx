@@ -8,7 +8,13 @@ import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Inserisci un indirizzo email valido");
-const passwordSchema = z.string().min(6, "La password deve essere di almeno 6 caratteri");
+const passwordSchema = z
+  .string()
+  .min(8, "La password deve essere di almeno 8 caratteri")
+  .regex(/[A-Z]/, "La password deve contenere almeno una lettera maiuscola")
+  .regex(/[a-z]/, "La password deve contenere almeno una lettera minuscola")
+  .regex(/[0-9]/, "La password deve contenere almeno un numero")
+  .regex(/[^A-Za-z0-9]/, "La password deve contenere almeno un carattere speciale (!@#$%^&* ecc.)");
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -59,7 +65,9 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/reset-password`;
+      // Costruisci l'URL completo includendo il basename per GitHub Pages
+      const basename = window.location.hostname === 'cristianomiolla.github.io' ? '/FuelFlow' : '';
+      const redirectUrl = `${window.location.origin}${basename}/reset-password`;
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
@@ -152,7 +160,7 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-background to-muted/30">
       {/* Logo and branding */}
       <div className="mb-8 text-center animate-fade-in">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-primary mb-4 p-0">
+        <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
           <img src={`${import.meta.env.BASE_URL}logo.png`} alt="FuelFlow Logo" className="w-20 h-20 drop-shadow-[0_0_3px_rgba(234,88,12,0.25)]" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -283,7 +291,7 @@ const Auth = () => {
                 <Input
                   id="password"
                   type="password"
-                  placeholder={isSignUp ? "Crea una password (min 6 caratteri)" : "Inserisci la password"}
+                  placeholder={isSignUp ? "Crea una password sicura (min 8 caratteri)" : "Inserisci la password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-11 h-12"
